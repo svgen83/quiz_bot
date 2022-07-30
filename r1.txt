@@ -1,0 +1,6 @@
+certifi==2022.6.15
+cffi==1.15.1
+cryptography==37.0.4
+future==0.18.2
+pycparser==2.21
+python-telegram-bot==11.1.0
