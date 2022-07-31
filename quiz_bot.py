@@ -5,12 +5,14 @@ import random
 import redis
 
 from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import Updater, CallbackContext
+from telegram.ext import Updater, CallbackContext, ConversationHandler
 from telegram.ext import CommandHandler, MessageHandler, Filters
 from dotenv import load_dotenv
 
 
 logger = logging.getLogger(__name__)
+
+CHOOSING, TYPING_REPLY = range(2)
 
 
 def get_text_fragments(text, start_symbols, split_symbols):
@@ -39,7 +41,41 @@ def start(update, context):
     custom_keyboard = [["Новый вопрос", "Сдаться"],["Мой счёт"]]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard)
     update.message.reply_text('Привет! Я бот для викторин', reply_markup=reply_markup)
+    return CHOOSING
     
+
+def handle_new_question_request(update, context):
+    random_question = random.choice(list(quiz_bases))
+    r.set(update.message.chat_id, random_question)
+    question = (r.get(update.message.chat_id)).decode("utf-8")
+    logger.info (question)
+    answer = quiz_bases.get(question)
+    short_answer = answer[answer.find(':')+2 : answer.find('.')]
+    logger.info (short_answer)
+    update.message.reply_text(question)
+    r.set(update.message.chat_id, short_answer)
+    return TYPING_REPLY
+    
+def handle_solution_attempt(update, context):
+    if update.message.text == (r.get(update.message.chat_id)).decode("utf-8"):
+        update.message.reply_text("Правильно! Поздравляю! Для следующего вопроса нажми 'Новый вопрос'")
+        return CHOOSING
+    elif update.message.text == "Сдаться":
+        update.message.reply_text((r.get(update.message.chat_id)).decode("utf-8"))
+        return CHOOSING
+    else:
+        update.message.reply_text("Неправильно... Попробуешь ещё раз?")
+        return TYPING_REPLY    
+
+
+def handle_hands_up(update, context):
+    update.message.reply_text((r.get(update.message.chat_id)).decode("utf-8"))
+    return CHOOSING  
+         
+
+def send_score(update, context):
+    update.message.reply_text("В разработке")
+
 
 def send_msg(update, context):
     random_question = random.choice(list(quiz_bases))
@@ -62,6 +98,8 @@ def send_msg(update, context):
     update.message.reply_text(msg)
 
 
+
+
 def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
@@ -72,11 +110,28 @@ def start_bot():
                     level=logging.INFO)
     
     updater = Updater(tg_token)
-    
+     
     dp = updater.dispatcher
     
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, send_msg))
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start),
+                      MessageHandler(Filters.text, handle_new_question_request)],
+
+        states={
+            CHOOSING: [MessageHandler(Filters.text, handle_new_question_request)],
+
+            TYPING_REPLY: [MessageHandler(Filters.text, handle_solution_attempt),
+            MessageHandler(Filters.regex(r'Сдаться'), handle_hands_up)]
+
+        },
+
+        fallbacks=[MessageHandler(Filters.regex(r'Мой cчёт'), send_score)]
+    )
+
+    dp.add_handler(conv_handler)
+    
+    #dp.add_handler(CommandHandler("start", start))
+    #dp.add_handler(MessageHandler(Filters.text & ~Filters.command, send_msg))
     dp.add_error_handler(error)
 
     updater.start_polling()
