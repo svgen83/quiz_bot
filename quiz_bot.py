@@ -36,6 +36,11 @@ def get_quiz_bases(quiz_dir):
         quiz_bases.update(quiz_base)
     return quiz_bases
     
+def get_user_info (update, context):
+    chat_id = update.message.chat_id
+    if r.get(chat_id):
+        user_info = json.loads(r.get(chat_id))
+    return user_info
 
 def start(update, context):  
     custom_keyboard = [["Новый вопрос", "Сдаться"],["Мой счёт"]]
@@ -46,35 +51,51 @@ def start(update, context):
 
 def handle_new_question_request(update, context):
     random_question = random.choice(list(quiz_bases))
-    r.set(update.message.chat_id, random_question)
-    question = (r.get(update.message.chat_id)).decode("utf-8")
-    logger.info (question)
-    answer = quiz_bases.get(question)
+    answer = quiz_bases.get(random_question)
     short_answer = answer[answer.find(':')+2 : answer.find('.')]
-    logger.info (short_answer)
-    update.message.reply_text(question)
-    r.set(update.message.chat_id, short_answer)
+    user_info = {'chat_id':update.message.chat_id,
+                 "question":random_question,
+                 "answer":short_answer, "score" : 0}
+    r.set(user_info['chat_id'], json.dumps(user_info))
+    logger.info (user_info["question"])
+    logger.info (user_info["answer"])
+    update.message.reply_text(user_info["question"])
     return TYPING_REPLY
     
+    
 def handle_solution_attempt(update, context):
-    if update.message.text == (r.get(update.message.chat_id)).decode("utf-8"):
+    user_info = get_user_info(update, context)
+    score = user_info["score"]
+    if update.message.text == user_info["answer"]:
         update.message.reply_text("Правильно! Поздравляю! Для следующего вопроса нажми 'Новый вопрос'")
+        score +=1
+        user_info["score"] = score
+        #user_info.update("score", score)
+        r.set(user_info['chat_id'], json.dumps(user_info))
         return CHOOSING
-    elif update.message.text == "Сдаться":
-        update.message.reply_text((r.get(update.message.chat_id)).decode("utf-8"))
-        return CHOOSING
+    #elif update.message.text == "Сдаться":
+     #   update.message.reply_text(user_info["answer"])
+      #  return CHOOSING
     else:
         update.message.reply_text("Неправильно... Попробуешь ещё раз?")
         return TYPING_REPLY    
 
 
 def handle_hands_up(update, context):
-    update.message.reply_text((r.get(update.message.chat_id)).decode("utf-8"))
+    user_info = get_user_info(update, context)
+    update.message.reply_text(user_info["answer"])
     return CHOOSING  
          
 
 def send_score(update, context):
-    update.message.reply_text("В разработке")
+    user_info = get_user_info(update, context)
+    if user_info["score"]:
+        score = user_info["score"]
+    else: score = 0
+    print(score)
+    if update.message.text == "Сдаться":
+        update.message.reply_text(f"Ваш счёт {score}")
+    return CHOOSING 
 
 
 def send_msg(update, context):
@@ -115,17 +136,20 @@ def start_bot():
     
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start),
-                      MessageHandler(Filters.text, handle_new_question_request)],
+                      MessageHandler(Filters.text, handle_new_question_request, pass_user_data=True)],
 
         states={
-            CHOOSING: [MessageHandler(Filters.text, handle_new_question_request)],
+            CHOOSING: [MessageHandler(Filters.text, handle_new_question_request,pass_user_data=True),
+                       MessageHandler(Filters.text, handle_hands_up,pass_user_data=True),
+                       MessageHandler(Filters.regex(r'Мой cчёт'), send_score,pass_user_data=True)],
 
-            TYPING_REPLY: [MessageHandler(Filters.text, handle_solution_attempt),
-            MessageHandler(Filters.regex(r'Сдаться'), handle_hands_up)]
-
+            TYPING_REPLY: [MessageHandler(Filters.text, handle_solution_attempt,pass_user_data=True),
+                           CommandHandler('score', send_score),            
+                           MessageHandler(Filters.regex(r'Сдаться'), handle_hands_up,pass_user_data=True)]
         },
 
-        fallbacks=[MessageHandler(Filters.regex(r'Мой cчёт'), send_score)]
+        fallbacks=[CommandHandler('start', start)]
+        #[MessageHandler(Filters.regex(r'Мой cчёт'), send_score)]
     )
 
     dp.add_handler(conv_handler)
