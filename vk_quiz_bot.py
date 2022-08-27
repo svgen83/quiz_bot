@@ -14,16 +14,22 @@ from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-CHOOSING, TYPING_REPLY = range(2)
-
 
 def echo(event, vk_api):
+    if event.text == "Новый вопрос":
+       msg = handle_new_question_request(event)
+    if event.text == "Сдаться":
+       msg = handle_hands_up(event)
+    if event.txt == "Мой счёт":
+       msg = send_score(event)
+
     vk_api.messages.send(
         user_id=event.user_id,
         random_id=random.randint(1,1000),
         keyboard=keyboard.get_keyboard(),
-        message='Пример клавиатуры'
-    )
+        message=msg)
+        
+    
 #    vk_api.messages.send(
  #       user_id=event.user_id,
   #      message=event.text,
@@ -54,23 +60,17 @@ def get_quiz_bases(quiz_dir):
     return quiz_bases
 
     
-def get_user_info (update, context):
+def get_user_info (event):
     chat_id = update.message.chat_id
     if r.get(chat_id):
         user_info = json.loads(r.get(chat_id))
     return user_info
 
 
-def start(update, context):  
-    custom_keyboard = [["Новый вопрос", "Сдаться"],["Мой счёт"]]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard)
-    update.message.reply_text('Привет! Я бот для викторин',
-                              reply_markup=reply_markup)
-    return CHOOSING
-    
+  
 
-def handle_new_question_request(update, context):
-    user_info = get_user_info(update, context)
+def handle_new_question_request(event):
+    user_info = get_user_info(event)
     random_question = random.choice(list(quiz_bases))
     answer = quiz_bases.get(random_question)
     short_answer = answer[answer.find(':')+2 : answer.find('.')]
@@ -81,17 +81,12 @@ def handle_new_question_request(update, context):
     r.set(user_info['chat_id'], json.dumps(user_info))
     logger.info (user_info["question"])
     logger.info (user_info["answer"])
-    update.message.reply_text(user_info["question"])
-    return TYPING_REPLY
+    return user_info["question"]
     
     
-def handle_solution_attempt(update, context):
-    user_info = get_user_info(update, context)
-    #print(user_info)
+def handle_solution_attempt(event):
+    user_info = get_user_info(event)
     if update.message.text == user_info["answer"]:
-        update.message.reply_text(''' Правильно! Поздравляю! 
-                                      Для следующего вопроса нажми 'Новый вопрос' 
-                                  ''')
         if 'score' in user_info:
             score = user_info['score']
         else:
@@ -99,17 +94,17 @@ def handle_solution_attempt(update, context):
         score +=1
         user_info["score"] = score
         r.set(user_info['chat_id'], json.dumps(user_info))
-        return CHOOSING
+        return ''' Правильно! Поздравляю! 
+                                      Для следующего вопроса нажми 'Новый вопрос' 
+                                  '''
     else:
-        update.message.reply_text("Неправильно... Попробуешь ещё раз?")
-        return TYPING_REPLY 
-       
+        return "Неправильно... Попробуешь ещё раз?"       
 
 
-def handle_hands_up(update, context):
-    user_info = get_user_info(update, context)
-    update.message.reply_text(user_info["answer"])
-    return CHOOSING  
+def handle_hands_up(event):
+    user_info = get_user_info(event)
+    return user_info["answer"]
+      
          
 
 def send_score(update, context):
@@ -118,8 +113,8 @@ def send_score(update, context):
         score = user_info["score"]
     else:
         score = 0
-    update.message.reply_text(f'Ваш счет:{score}')
-    return CHOOSING 
+    return f'Ваш счет:{score}'
+     
 
 
 def send_msg(update, context):
@@ -156,56 +151,6 @@ def start_bot():
     
     updater = Updater(tg_token)
      
-    dp = updater.dispatcher
-    
-    conv_handler = ConversationHandler(
-        entry_points=[
-                      CommandHandler('start', start),
-                      MessageHandler(Filters.regex(r'Новый вопрос'),
-                                     handle_new_question_request),
-                      MessageHandler(Filters.regex(r'Мой счёт'),
-                                     send_score),
-                      MessageHandler(Filters.regex(r'Сдаться'),
-                                     handle_hands_up)
-                      ],
-
-        states={
-            CHOOSING: [
-                       MessageHandler(Filters.regex(r'Новый вопрос'),
-                                      handle_new_question_request),
-                       MessageHandler(Filters.regex(r'Сдаться'),
-                                      handle_hands_up),
-                       MessageHandler(Filters.regex(r'Мой счёт'),
-                                      send_score)
-                       ],
-
-            TYPING_REPLY: [
-                           MessageHandler(Filters.text 
-                                          & ~Filters.regex(r'Мой счёт')
-                                          & ~Filters.regex(r'Сдаться'),
-                                          handle_solution_attempt),
-                           MessageHandler(Filters.regex(r'Мой счёт'),
-                                          send_score),            
-                           MessageHandler(Filters.regex(r'Сдаться'),
-                                          handle_hands_up)
-                           ]
-        },
-
-        fallbacks=[MessageHandler(Filters.regex(r'Мой счёт'), send_score),            
-                   MessageHandler(Filters.regex(r'Сдаться'), handle_hands_up)]
-        
-    )
-
-    dp.add_handler(conv_handler)
-    
-    #dp.add_handler(CommandHandler("start", start))
-    #dp.add_handler(MessageHandler(Filters.text & ~Filters.command, send_msg))
-    dp.add_error_handler(error)
-
-    updater.start_polling()
-
-    updater.idle()
-
 
 if __name__ == '__main__':
     load_dotenv()
@@ -222,7 +167,6 @@ if __name__ == '__main__':
     vk_api = vk_session.get_api()
     
     keyboard = VkKeyboard(one_time=True)
-
     keyboard.add_button('Новый вопрос') #, color=VkKeyboardColor.DEFAULT)
     keyboard.add_button('Сдаться') #, color=VkKeyboardColor.POSITIVE)
 
@@ -230,6 +174,7 @@ if __name__ == '__main__':
     keyboard.add_button('Мой счет') #, color=VkKeyboardColor.NEGATIVE)
    
     longpoll = VkLongPoll(vk_session)
+    
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             echo(event, vk_api)
