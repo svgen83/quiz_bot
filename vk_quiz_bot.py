@@ -4,6 +4,9 @@ import os
 import random
 import redis
 
+import vk_api as vk
+from vk_api.longpoll import VkLongPoll, VkEventType
+
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CallbackContext, ConversationHandler
 from telegram.ext import CommandHandler, MessageHandler, Filters
@@ -13,6 +16,15 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 CHOOSING, TYPING_REPLY = range(2)
+
+
+def echo(event, vk_api):
+    vk_api.messages.send(
+        user_id=event.user_id,
+        message=event.text,
+        random_id=random.randint(1,1000)
+    )
+
 
 
 def get_text_fragments(text, start_symbols, split_symbols):
@@ -193,12 +205,26 @@ def start_bot():
 if __name__ == '__main__':
     load_dotenv()
     
-    tg_token = os.getenv("TG_TOKEN")
+    #vk_token = os.getenv("VK_TOKEN")
     
     r = redis.Redis(host=os.getenv("REDIS_ENDPOINT"),
                     port=os.getenv("REDIS_PORT"),
                     password=os.getenv("REDIS_PASSWORD"), db=0)
                     
     quiz_bases = get_quiz_bases("quiz-questions")
-    start_bot()
+    
+    vk_session = vk.VkApi(token=os.getenv("VK_TOKEN"))
+    vk_api = vk_session.get_api()
+    longpoll = VkLongPoll(vk_session)
+    for event in longpoll.listen():
+        if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+            echo(event, vk_api)
+    
+    
+    
+    
+    
+    
+    
+    
 
