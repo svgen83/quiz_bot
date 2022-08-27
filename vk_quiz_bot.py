@@ -6,10 +6,9 @@ import redis
 
 import vk_api as vk
 from vk_api.longpoll import VkLongPoll, VkEventType
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
+from vk_api.utils import get_random_id
 
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import Updater, CallbackContext, ConversationHandler
-from telegram.ext import CommandHandler, MessageHandler, Filters
 from dotenv import load_dotenv
 
 
@@ -21,9 +20,15 @@ CHOOSING, TYPING_REPLY = range(2)
 def echo(event, vk_api):
     vk_api.messages.send(
         user_id=event.user_id,
-        message=event.text,
-        random_id=random.randint(1,1000)
+        random_id=random.randint(1,1000),
+        keyboard=keyboard.get_keyboard(),
+        message='Пример клавиатуры'
     )
+#    vk_api.messages.send(
+ #       user_id=event.user_id,
+  #      message=event.text,
+   #     random_id=random.randint(1,1000)
+    #)
 
 
 
@@ -215,6 +220,15 @@ if __name__ == '__main__':
     
     vk_session = vk.VkApi(token=os.getenv("VK_TOKEN"))
     vk_api = vk_session.get_api()
+    
+    keyboard = VkKeyboard(one_time=True)
+
+    keyboard.add_button('Новый вопрос') #, color=VkKeyboardColor.DEFAULT)
+    keyboard.add_button('Сдаться') #, color=VkKeyboardColor.POSITIVE)
+
+    keyboard.add_line()  # Переход на вторую строку
+    keyboard.add_button('Мой счет') #, color=VkKeyboardColor.NEGATIVE)
+   
     longpoll = VkLongPoll(vk_session)
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
