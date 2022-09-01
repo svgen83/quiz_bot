@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 
-def echo(event, vk_api):
+def send_msg(event, vk_api):
     if event.text == "Новый вопрос":
        msg = handle_new_question_request(event)
     if event.text == "Сдаться":
@@ -30,11 +30,11 @@ def echo(event, vk_api):
         message=msg)
         
     
-#    vk_api.messages.send(
- #       user_id=event.user_id,
-  #      message=event.text,
-   #     random_id=random.randint(1,1000)
-    #)
+##    vk_api.messages.send(
+##    user_id=event.user_id,
+##    message=event.text,
+##    random_id=random.randint(1,1000)
+
 
 
 
@@ -61,20 +61,18 @@ def get_quiz_bases(quiz_dir):
 
     
 def get_user_info (event):
-    chat_id = update.message.chat_id
-    if r.get(chat_id):
-        user_info = json.loads(r.get(chat_id))
+    user_id = event.user_id
+    if r.get(user_id):
+        user_info = json.loads(r.get(user_id))
     return user_info
 
-
-  
 
 def handle_new_question_request(event):
     user_info = get_user_info(event)
     random_question = random.choice(list(quiz_bases))
     answer = quiz_bases.get(random_question)
     short_answer = answer[answer.find(':')+2 : answer.find('.')]
-    user_info.update({'chat_id':update.message.chat_id,
+    user_info.update({'chat_id':user_id,
                  "question":random_question,
                  "answer":short_answer
                   })
@@ -86,7 +84,7 @@ def handle_new_question_request(event):
     
 def handle_solution_attempt(event):
     user_info = get_user_info(event)
-    if update.message.text == user_info["answer"]:
+    if event.text == user_info["answer"]:
         if 'score' in user_info:
             score = user_info['score']
         else:
@@ -108,7 +106,7 @@ def handle_hands_up(event):
          
 
 def send_score(update, context):
-    user_info = get_user_info(update, context)
+    user_info = get_user_info(event)
     if user_info["score"]:
         score = user_info["score"]
     else:
@@ -117,31 +115,31 @@ def send_score(update, context):
      
 
 
-def send_msg(update, context):
-    random_question = random.choice(list(quiz_bases))
-    if update.message.text == "Новый вопрос":
-        r.set(update.message.chat_id, random_question)
-        question = (r.get(update.message.chat_id)).decode("utf-8")
-        logger.info (question)
-        answer = quiz_bases.get(question)
-        for_answer = answer[answer.find(':')+2 : answer.find('.')]
-        logger.info (for_answer)
-        msg = question
-        r.set(update.message.chat_id, for_answer)
-    elif update.message.text == (r.get(update.message.chat_id)).decode("utf-8"):
-        msg = "Правильно! Поздравляю! Для следующего вопроса нажми 'Новый вопрос'"
-    elif update.message.text == "Сдаться":
-        msg = (r.get(update.message.chat_id)).decode("utf-8")
-    elif update.message.text == "Мой счёт":
-        msg = "в разработке"
-    else: msg = "Неправильно... Попробуешь ещё раз?"
-    update.message.reply_text(msg)
+##def send_msg(update, context):
+##    random_question = random.choice(list(quiz_bases))
+##    if update.message.text == "Новый вопрос":
+##        r.set(update.message.chat_id, random_question)
+##        question = (r.get(update.message.chat_id)).decode("utf-8")
+##        logger.info (question)
+##        answer = quiz_bases.get(question)
+##        for_answer = answer[answer.find(':')+2 : answer.find('.')]
+##        logger.info (for_answer)
+##        msg = question
+##        r.set(update.message.chat_id, for_answer)
+##    elif update.message.text == (r.get(update.message.chat_id)).decode("utf-8"):
+##        msg = "Правильно! Поздравляю! Для следующего вопроса нажми 'Новый вопрос'"
+##    elif update.message.text == "Сдаться":
+##        msg = (r.get(update.message.chat_id)).decode("utf-8")
+##    elif update.message.text == "Мой счёт":
+##        msg = "в разработке"
+##    else: msg = "Неправильно... Попробуешь ещё раз?"
+##    update.message.reply_text(msg)
 
 
 
 
-def error(update, context):
-    logger.warning('Update "%s" caused error "%s"', update, context.error)
+##def error(event):
+##    logger.warning('Update "%s" caused error "%s"', event.error)
 
 
 def start_bot():
@@ -149,10 +147,6 @@ def start_bot():
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
     
-    updater = Updater(tg_token)
-     
-
-if __name__ == '__main__':
     load_dotenv()
     
     #vk_token = os.getenv("VK_TOKEN")
@@ -177,7 +171,13 @@ if __name__ == '__main__':
     
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-            echo(event, vk_api)
+            send_msg(event, vk_api)
+     
+
+if __name__ == '__main__':
+
+    start_bot()
+
     
     
     
