@@ -15,14 +15,7 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 
-def send_msg(event, vk_api):
-    if event.text == "Новый вопрос":
-       msg = handle_new_question_request(event)
-    if event.text == "Сдаться":
-       msg = handle_hands_up(event)
-    if event.txt == "Мой счёт":
-       msg = send_score(event)
-
+def send_msg(event, vk_api, msg):
     vk_api.messages.send(
         user_id=event.user_id,
         random_id=random.randint(1,1000),
@@ -35,7 +28,15 @@ def send_msg(event, vk_api):
 ##    message=event.text,
 ##    random_id=random.randint(1,1000)
 
-
+def choice_msg(event, vk_api):
+    msg = handle_solution_attempt(event)
+    if event.text == "Новый вопрос":
+        msg = handle_new_question_request(event)
+    if event.text == "Сдаться":
+        msg = handle_hands_up(event)
+    if event.text == "Мой счёт":
+        msg = send_score(event)
+    return msg
 
 
 def get_text_fragments(text, start_symbols, split_symbols):
@@ -61,6 +62,7 @@ def get_quiz_bases(quiz_dir):
 
     
 def get_user_info (event):
+    print(event)
     user_id = event.user_id
     if r.get(user_id):
         user_info = json.loads(r.get(user_id))
@@ -143,22 +145,6 @@ def send_score(update, context):
 
 
 def start_bot():
-
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-    
-    load_dotenv()
-    
-    #vk_token = os.getenv("VK_TOKEN")
-    
-    r = redis.Redis(host=os.getenv("REDIS_ENDPOINT"),
-                    port=os.getenv("REDIS_PORT"),
-                    password=os.getenv("REDIS_PASSWORD"), db=0)
-                    
-    quiz_bases = get_quiz_bases("quiz-questions")
-    
-    vk_session = vk.VkApi(token=os.getenv("VK_TOKEN"))
-    vk_api = vk_session.get_api()
     
     keyboard = VkKeyboard(one_time=True)
     keyboard.add_button('Новый вопрос') #, color=VkKeyboardColor.DEFAULT)
@@ -171,10 +157,25 @@ def start_bot():
     
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-            send_msg(event, vk_api)
+            msg = choice_msg(event, vk_api)
+            send_msg(event, vk_api, msg)
      
 
 if __name__ == '__main__':
+
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+    
+    load_dotenv()
+    
+    vk_session = vk.VkApi(token=os.getenv("VK_TOKEN"))
+    vk_api = vk_session.get_api()
+       
+    r = redis.Redis(host=os.getenv("REDIS_ENDPOINT"),
+                    port=os.getenv("REDIS_PORT"),
+                    password=os.getenv("REDIS_PASSWORD"), db=0)
+                    
+    quiz_bases = get_quiz_bases("quiz-questions")
 
     start_bot()
 
