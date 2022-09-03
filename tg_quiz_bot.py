@@ -4,39 +4,19 @@ import os
 import random
 import redis
 
+from dotenv import load_dotenv
+from quiz_base_tools import get_text_fragments, get_quiz_bases
+
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CallbackContext, ConversationHandler
 from telegram.ext import CommandHandler, MessageHandler, Filters
-from dotenv import load_dotenv
 
 
 logger = logging.getLogger(__name__)
 
 CHOOSING, TYPING_REPLY = range(2)
 
-
-def get_text_fragments(text, start_symbols, split_symbols):
-    fragments = []
-    splitted_text = text.split(split_symbols)
-    for fragment in splitted_text:
-        if fragment.startswith(start_symbols):
-            fragments.append(fragment)
-    return fragments
-
-
-def get_quiz_bases(quiz_dir):
-    quiz_bases = {}
-    for quiz_file in os.listdir(quiz_dir):
-        path_to_file = f"{quiz_dir}/{quiz_file}"
-        with open(path_to_file, "r", encoding = "KOI8-R") as quiz_file:
-          file_contents = quiz_file.read()
-        question = get_text_fragments(file_contents, "Вопрос", "\n\n")
-        answer = get_text_fragments(file_contents, "Ответ:", "\n\n")
-        quiz_base = dict(zip(question, answer))
-        quiz_bases.update(quiz_base)
-    return quiz_bases
-
-    
+   
 def get_user_info (update, context):
     chat_id = update.message.chat_id
     if r.get(chat_id):
@@ -87,7 +67,6 @@ def handle_solution_attempt(update, context):
         return TYPING_REPLY 
        
 
-
 def handle_hands_up(update, context):
     user_info = get_user_info(update, context)
     update.message.reply_text(user_info["answer"])
@@ -109,9 +88,6 @@ def error(update, context):
 
 
 def start_bot():
-
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
     
     updater = Updater(tg_token)
      
@@ -163,6 +139,11 @@ def start_bot():
 
 if __name__ == '__main__':
     load_dotenv()
+    
+    logging.basicConfig(
+                  format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                  level=logging.INFO
+                       )
     
     tg_token = os.getenv("TG_TOKEN")
     
