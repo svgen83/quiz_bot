@@ -25,7 +25,7 @@ def get_user_info (update, context):
 
 
 def start(update, context):  
-    custom_keyboard = [["Новый вопрос", "Сдаться"],["Мой счёт"]]
+    custom_keyboard = [['Новый вопрос', 'Сдаться'],['Мой счёт']]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard)
     update.message.reply_text('Привет! Я бот для викторин',
                               reply_markup=reply_markup)
@@ -38,19 +38,19 @@ def handle_new_question_request(update, context):
     answer = quiz_bases.get(random_question)
     short_answer = answer[answer.find(':')+2 : answer.find('.')]
     user_info.update({'chat_id':update.message.chat_id,
-                 "question":random_question,
-                 "answer":short_answer
+                 'question':random_question,
+                 'answer':short_answer
                   })
     r.set(user_info['chat_id'], json.dumps(user_info))
-    logger.info (user_info["question"])
-    logger.info (user_info["answer"])
-    update.message.reply_text(user_info["question"])
+    logger.info (user_info['question'])
+    logger.info (user_info['answer'])
+    update.message.reply_text(user_info['question'])
     return TYPING_REPLY
     
     
 def handle_solution_attempt(update, context):
     user_info = get_user_info(update, context)
-    if update.message.text == user_info["answer"]:
+    if update.message.text == user_info['answer']:
         update.message.reply_text(''' Правильно! Поздравляю! 
                                       Для следующего вопроса нажми 'Новый вопрос' 
                                   ''')
@@ -59,24 +59,24 @@ def handle_solution_attempt(update, context):
         else:
             score = 0
         score +=1
-        user_info["score"] = score
+        user_info['score'] = score
         r.set(user_info['chat_id'], json.dumps(user_info))
         return CHOOSING
     else:
-        update.message.reply_text("Неправильно... Попробуешь ещё раз?")
+        update.message.reply_text('Неправильно... Попробуешь ещё раз?')
         return TYPING_REPLY 
        
 
 def handle_hands_up(update, context):
     user_info = get_user_info(update, context)
-    update.message.reply_text(user_info["answer"])
+    update.message.reply_text(user_info['answer'])
     return CHOOSING  
          
 
 def send_score(update, context):
     user_info = get_user_info(update, context)
-    if user_info["score"]:
-        score = user_info["score"]
+    if user_info['score']:
+        score = user_info['score']
     else:
         score = 0
     update.message.reply_text(f'Ваш счет:{score}')
@@ -145,12 +145,12 @@ if __name__ == '__main__':
                   level=logging.INFO
                        )
     
-    tg_token = os.getenv("TG_TOKEN")
+    tg_token = os.getenv('TG_TOKEN')
     
-    r = redis.Redis(host=os.getenv("REDIS_ENDPOINT"),
-                    port=os.getenv("REDIS_PORT"),
-                    password=os.getenv("REDIS_PASSWORD"), db=0)
+    r = redis.Redis(host=os.getenv('REDIS_ENDPOINT'),
+                    port=os.getenv('REDIS_PORT'),
+                    password=os.getenv('REDIS_PASSWORD'), db=0)
                     
-    quiz_bases = get_quiz_bases("quiz-questions")
+    quiz_bases = get_quiz_bases('quiz-questions')
     start_bot()
 
