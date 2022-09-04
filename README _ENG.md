@@ -1,53 +1,52 @@
 # Quiz_bot
 
-Эта программа представляет собой игру-викторину вроде "Что? Где Когда?" или "Квиз", реализованная в виде чат-бота для Телеграмм и социальной сети "Вконтакте" 
+This program is a quiz game like "What? Where? When?" or "Quiz", implemented as a chat bot for Telegrams and the social network "Vkontakte" 
 
-### Как установить
+### How to install
 
-Python3 должен быть уже установлен. 
-Затем используйте `pip` (или `pip3`, если есть конфликт с Python2) для установки зависимостей:
+Python3 should already be installed.
+Then use `pip` (or `pip3` if there is a conflict with Python2) to install the dependencies:
 ```
 pip install -r requirements.txt
 ```
-#### Настройки программы
+#### Program settings
 
-Для того, чтобы программа корректно работала, в папке с программой создайте файл .env, содержащий следующие данные:
+In order for the program to work correctly, create an .env file in the program folder containing the following data:
 
-1) Токен, полученный при регистрации телеграмм-бота. Токен Вы получите при регистрации бота. Здесь написано [как зарегистрирвать телеграмм-бот](https://way23.ru/%D1%80%D0%B5%D0%B3%D0%B8%D1%81%D1%82%D1%80%D0%B0%D1%86%D0%B8%D1%8F-%D0%B1%D0%BE%D1%82%D0%B0-%D0%B2-telegram/).
-Пропишите его следующим образом:
+1) Token received upon registration of the telegram bot. You will receive a token upon registration of the bot. It says here [how to register a telegram bot](https://way23.ru/%D1%80%D0%B5%D0%B3%D0%B8%D1%81%D1%82%D1%80%D0%B0%D1%86%D0%B8%D1%8F-%D0%B1%D0%BE%D1%82%D0%B0-%D0%B2-telegram/).
+Write it like this:
 ```
-TG_TOKEN="Токен телеграмм-бота"
+TG_TOKEN="Telegram bot token"
 ```
-2) Чтобы бот работал в социальной сети Вконтакте, создайте в ней группу, а затем получите токен для взаимодействия с API.
-О том, как получить токен написано на [этой странице](https://dev.vk.com/api/access-token/getting-started). При этом следует дать разрешение на отправку сообщений
+2) For the bot to work on the Vkontakte social network, create a group in it, and then get a token to interact with the API.
+How to get a token is written on [this page](https://dev.vk.com/api/access-token/getting-started). You must give permission to send messages.
 ```
-VK_TOKEN="Токен соцсети Вконтакте"
+VK_TOKEN="Vkontakte social network token"
 ```
-3) Для работы понадобиться доступ к базе данных Redis. В настройках программы следует прописать адрес базы данных, его порт и пароль в следующем виде:
+3) To work, you need access to the Redis database. In the program settings, you should specify the database address, its port and password in the following form:
+```
+REDIS_ENDPOINT = "database address (something like redis-.....cloud.redislabs.com)"
+REDIS_PORT = "database port (five digits)"
+REDIS_PASSWORD = "database password"
+```
 
-```
-REDIS_ENDPOINT = "адрес базы данных (что-то вроде redis-.....cloud.redislabs.com)"
-REDIS_PORT = "порт базы данных (пять цифр)"
-REDIS_PASSWORD = "пароль к базе данных"
-```
 
+#### How to run
 
-#### Как запустить
-
-Бот запускается из командной строки. Для запуска программы с помощью команды cd сначала нужно перейти в папку с программой.
-Предварительно следует обучить бот стандартным фразам. Для этого необходимо: 
-Для запуска телеграмм-бота в командной строке пишем:
+The bot is launched from the command line. To run the program using the cd command, you first need to go to the folder with the program.
+You should first teach the bot standard phrases. For this you need:
+To start the telegram bot on the command line, write:
 ```
 python tg_quiz_bot.py
 ```
-Для запуска чат-бота в Вконтакте, соответственно:
+To launch a chat bot on Vkontakte, respectively:
 ```
 python vk_quiz_bot.py
 ```
 
-Для запуска программы с сервера, необходимо сначала обзавестить сервером. Далее рассмотрен пример запуска на виртуальном сервере [Heroku](https://heroku.com).
-Сначала следует зарегистироваться на сайте Heroku и создать приложение. Передать код можно с GitHub.После привязки аккаунта GitHub к Heroku следует найти репозиторий с кодом и подключить к Heroku. Переменные окружения следует прописать в разделе Config Vars во вкладке Settings. Нажать кнопку "Deploy Branch". 
+To run the program from the server, you must first acquire a server. The following is an example of running on a virtual server [Heroku](https://heroku.com).
+The first step is to register on the Heroku website and create an app. You can submit the code from GitHub. After linking your GitHub account to Heroku, you should find the repository with the code and connect it to Heroku. Environment variables should be registered in the Config Vars section in the Settings tab. Click the "Deploy Branch" button.
 
-### Цель проекта
+### Objective of the project
 
-Код написан в образовательных целях на онлайн-курсе для веб-разработчиков [dvmn.org](https://dvmn.org/).
+The code was written for educational purposes in an online course for web developers [dvmn.org](https://dvmn.org/).
