@@ -4,6 +4,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def get_user_info (update, context):
+    chat_id = update.message.chat_id
+    if r.get(chat_id):
+        user_info = json.loads(r.get(chat_id))
+    return user_info
+
      
 def get_text_fragments(text, start_symbols, split_symbols):
     fragments = []
