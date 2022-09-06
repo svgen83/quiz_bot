@@ -25,5 +25,4 @@ def get_quiz_bases(quiz_dir):
         quiz_base = dict(zip(question, answer))
         quiz_bases.update(quiz_base)
     logger.info ('база вопросов создана')
-    return quiz_bases 
-    
+    return quiz_bases    

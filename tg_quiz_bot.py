@@ -34,8 +34,8 @@ def start(update, context):
 
 def handle_new_question_request(update, context):
     user_info = get_user_info(update, context)
-    random_question = random.choice(list(quiz_bases))
-    answer = quiz_bases.get(random_question)
+    random_question, answer = random.choice(list(quiz_bases.items()))
+##    answer = quiz_bases.get(random_question)
     short_answer = answer[answer.find(':')+2 : answer.find('.')]
     user_info.update({'chat_id':update.message.chat_id,
                  'question':random_question,
@@ -153,4 +153,3 @@ if __name__ == '__main__':
                     
     quiz_bases = get_quiz_bases('quiz-questions')
     start_bot()
-

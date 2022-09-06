@@ -23,15 +23,15 @@ def get_user_info (event, vk_api):
     return user_info
 
 
-def choose_msg(event, vk_api):
-    if event.text == 'Новый вопрос':
-        msg = handle_new_question_request(event, vk_api)
-    elif event.text == 'Сдаться':
-        msg = handle_hands_up(event, vk_api)
-    elif event.text == 'Мой счёт':
-        msg = send_score(event, vk_api)
-    else: msg = handle_solution_attempt(event, vk_api)
-    return msg
+##def choose_msg(event, vk_api):
+##    if event.text == 'Новый вопрос':
+##        msg = handle_new_question_request(event, vk_api)
+##    elif event.text == 'Сдаться':
+##        msg = handle_hands_up(event, vk_api)
+##    elif event.text == 'Мой счёт':
+##        msg = send_score(event, vk_api)
+##    else: msg = handle_solution_attempt(event, vk_api)
+##    return msg
 
 
 def handle_new_question_request(event, vk_api):
@@ -90,8 +90,15 @@ def make_keyboard():
     return keyboard
     
      
-def send_msg(event, vk_api, msg):
-    keyboard = make_keyboard()   
+def send_msg(event, vk_api):
+    keyboard = make_keyboard()
+    if event.text == 'Новый вопрос':
+        msg = handle_new_question_request(event, vk_api)
+    elif event.text == 'Сдаться':
+        msg = handle_hands_up(event, vk_api)
+    elif event.text == 'Мой счёт':
+        msg = send_score(event, vk_api)
+    else: msg = handle_solution_attempt(event, vk_api)
     vk_api.messages.send(
         user_id=event.user_id,
         random_id=random.randint(1,1000),
