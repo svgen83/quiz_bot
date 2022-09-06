@@ -109,6 +109,17 @@ def send_msg(event, vk_api):
 
 
 def start_bot():
+
+    vk_session = vk.VkApi(token=os.getenv('VK_TOKEN'))
+    vk_api = vk_session.get_api()
+       
+    r = redis.Redis(host=os.getenv('REDIS_ENDPOINT'),
+                    port=os.getenv('REDIS_PORT'),
+                    password=os.getenv('REDIS_PASSWORD'), db=0)
+                    
+    longpoll = VkLongPoll(vk_session)
+                    
+    quiz_bases = get_quiz_bases('quiz-questions')
     logger.info ('Бот запущен')
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
@@ -125,16 +136,7 @@ if __name__ == '__main__':
                   level=logging.INFO
                   )
     
-    vk_session = vk.VkApi(token=os.getenv('VK_TOKEN'))
-    vk_api = vk_session.get_api()
-       
-    r = redis.Redis(host=os.getenv('REDIS_ENDPOINT'),
-                    port=os.getenv('REDIS_PORT'),
-                    password=os.getenv('REDIS_PASSWORD'), db=0)
-                    
-    longpoll = VkLongPoll(vk_session)
-                    
-    quiz_bases = get_quiz_bases('quiz-questions')
+
 
     start_bot()
 
