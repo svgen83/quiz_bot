@@ -123,8 +123,7 @@ def start_bot():
     logger.info ('Бот запущен')
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-            msg = choose_msg(event, vk_api)
-            send_msg(event, vk_api, msg)
+            send_msg(event, vk_api)
      
 
 if __name__ == '__main__':
