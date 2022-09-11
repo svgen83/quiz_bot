@@ -16,8 +16,7 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 logger = logging.getLogger(__name__)
 
 
-def handle_new_question_request(event, vk_api, redis_call):
-    quiz_bases = get_quiz_bases('quiz-questions')
+def handle_new_question_request(event, vk_api, redis_call, quiz_bases):
     user_info = get_user_info(event.user_id, redis_call)
     random_question = random.choice(list(quiz_bases))
     answer = quiz_bases.get(random_question)
@@ -73,10 +72,11 @@ def make_keyboard():
     return keyboard
 
 
-def send_msg(event, vk_api, redis_call):
+def send_msg(event, vk_api, redis_call, quiz_bases):
     keyboard = make_keyboard()
     if event.text == 'Новый вопрос':
-        msg = handle_new_question_request(event, vk_api, redis_call)
+        msg = handle_new_question_request(event, vk_api,
+                                          redis_call, quiz_bases)
     elif event.text == 'Сдаться':
         msg = handle_hands_up(event, vk_api, redis_call)
     elif event.text == 'Мой счёт':
@@ -104,13 +104,14 @@ def start_bot():
                              port=os.getenv('REDIS_PORT'),
                              password=os.getenv('REDIS_PASSWORD'),
                              db=0)
-
+    quiz_bases = get_quiz_bases('quiz-questions')
+    
     longpoll = VkLongPoll(vk_session)
 
     logger.info('Бот запущен')
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-            send_msg(event, vk_api, redis_call)
+            send_msg(event, vk_api, redis_call, quiz_bases)
 
 
 if __name__ == '__main__':
