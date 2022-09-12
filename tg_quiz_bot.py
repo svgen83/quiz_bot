@@ -5,6 +5,7 @@ import random
 import redis
 
 from dotenv import load_dotenv
+from functools import partial
 from quiz_base_tools import get_text_fragments, get_quiz_bases
 from quiz_base_tools import get_user_info
 
@@ -25,9 +26,10 @@ def start(update, context):
     return CHOOSING
 
 
-def handle_new_question_request(update, context):
-    user_info = get_user_info(update.message.chat.id, redis_call)
-    quiz_bases = get_quiz_bases('quiz-questions')
+def handle_new_question_request(redis_call, quiz_bases,
+                                update, context):
+    user_info = get_user_info(update.message.chat.id,
+                              redis_call)
     random_question, answer = random.choice(list(quiz_bases.items()))
     short_answer = answer[answer.find(':') + 2:answer.find('.')]
     user_info.update({
@@ -42,11 +44,12 @@ def handle_new_question_request(update, context):
     return TYPING_REPLY
 
 
-def handle_solution_attempt(update, context):
-    user_info = get_user_info(update.message.chat.id, redis_call)
+def handle_solution_attempt(redis_call, update, context):
+    user_info = get_user_info(update.message.chat.id,
+                              redis_call)
     if update.message.text == user_info['answer']:
         update.message.reply_text(''' Правильно! Поздравляю!
-                                      Для следующего вопроса нажми 'Новый вопрос' 
+                                      Для следующего вопроса нажми 'Новый вопрос'
                                   ''')
         if 'score' in user_info:
             score = user_info['score']
@@ -61,14 +64,16 @@ def handle_solution_attempt(update, context):
         return TYPING_REPLY
 
 
-def handle_hands_up(update, context):
-    user_info = get_user_info(update.message.chat.id, redis_call)
+def handle_hands_up(redis_call, update, context):
+    user_info = get_user_info(update.message.chat.id,
+                              redis_call)
     update.message.reply_text(user_info['answer'])
     return CHOOSING
 
 
-def send_score(update, context):
-    user_info = get_user_info(update.message.chat.id, redis_call)
+def send_score(redis_call, update, context):
+    user_info = get_user_info(update.message.chat.id,
+                              redis_call)
     if user_info['score']:
         score = user_info['score']
     else:
@@ -78,7 +83,9 @@ def send_score(update, context):
 
 
 def error(update, context):
-    logger.warning('Update "%s" caused error "%s"', update, context.error)
+    logger.warning('Update "%s" caused error "%s"',
+                   update,
+                   context.error)
 
 
 def start_bot():
@@ -90,12 +97,11 @@ def start_bot():
 
     tg_token = os.getenv('TG_TOKEN')
 
-    global redis_call
-
-    redis_call = redis.Redis(host=os.getenv('REDIS_ENDPOINT'),
-                             port=os.getenv('REDIS_PORT'),
-                             password=os.getenv('REDIS_PASSWORD'),
-                             db=0)
+    quiz_bases = get_quiz_bases('quiz-questions')
+    r = redis.Redis(host=os.getenv('REDIS_ENDPOINT'),
+                    port=os.getenv('REDIS_PORT'),
+                    password=os.getenv('REDIS_PASSWORD'),
+                    db=0)
 
     updater = Updater(tg_token)
 
@@ -105,29 +111,40 @@ def start_bot():
         entry_points=[
             CommandHandler('start', start),
             MessageHandler(Filters.regex(r'Новый вопрос'),
-                           handle_new_question_request),
-            MessageHandler(Filters.regex(r'Мой счёт'), send_score),
-            MessageHandler(Filters.regex(r'Сдаться'), handle_hands_up)
+                           partial(handle_new_question_request,
+                                   r, quiz_bases)),
+            MessageHandler(Filters.regex(r'Мой счёт'),
+                           partial(send_score, r)),
+            MessageHandler(Filters.regex(r'Сдаться'),
+                           partial(handle_hands_up, r))
         ],
         states={
             CHOOSING: [
                 MessageHandler(Filters.regex(r'Новый вопрос'),
-                               handle_new_question_request),
-                MessageHandler(Filters.regex(r'Сдаться'), handle_hands_up),
-                MessageHandler(Filters.regex(r'Мой счёт'), send_score)
+                               partial(handle_new_question_request,
+                                       r, quiz_bases)),
+                MessageHandler(Filters.regex(r'Сдаться'),
+                               partial(handle_hands_up, r)),
+                MessageHandler(Filters.regex(r'Мой счёт'),
+                               partial(send_score, r))
             ],
             TYPING_REPLY: [
                 MessageHandler(
                     Filters.text & ~
                     Filters.regex(r'Мой счёт') & ~
-                    Filters.regex(r'Сдаться'), handle_solution_attempt),
-                MessageHandler(Filters.regex(r'Мой счёт'), send_score),
-                MessageHandler(Filters.regex(r'Сдаться'), handle_hands_up)
+                    Filters.regex(r'Сдаться'),
+                    partial(handle_solution_attempt, r)),
+                MessageHandler(Filters.regex(r'Мой счёт'),
+                               partial(send_score, r)),
+                MessageHandler(Filters.regex(r'Сдаться'),
+                               partial(handle_hands_up, r))
             ]
         },
         fallbacks=[
-            MessageHandler(Filters.regex(r'Мой счёт'), send_score),
-            MessageHandler(Filters.regex(r'Сдаться'), handle_hands_up)
+            MessageHandler(Filters.regex(r'Мой счёт'),
+                           partial(send_score, r)),
+            MessageHandler(Filters.regex(r'Сдаться'),
+                           partial(handle_hands_up, r))
         ])
 
     dp.add_handler(conv_handler)
